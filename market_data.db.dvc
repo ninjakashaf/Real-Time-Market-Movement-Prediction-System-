@@ -1,0 +1,5 @@
+outs:
+- md5: eb10308538aa74151fe5c61c591964b8
+  size: 90112
+  hash: md5
+  path: market_data.db
