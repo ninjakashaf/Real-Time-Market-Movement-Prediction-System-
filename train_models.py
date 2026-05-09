@@ -9,6 +9,8 @@ Requirements:
 
 Run AFTER build_dataset.py
 """
+import mlflow
+import mlflow.pytorch
 
 import numpy as np
 import pandas as pd
@@ -207,7 +209,7 @@ def plot_losses(all_losses):
 
 def run_training():
     print("=" * 60)
-    print("Phase 4: Training RNN, LSTM, GRU Models")
+    print("Phase 4: Training RNN, LSTM, GRU Models with MLflow")
     print("=" * 60)
 
     X, y = load_sequences()
@@ -223,17 +225,40 @@ def run_training():
     all_losses = {}
     all_results = []
 
-    # Train and evaluate each model
+    # 1. Set the MLflow Experiment Name
+    mlflow.set_experiment("Market_Movement_Prediction")
+
+    # Train and evaluate each model using MLflow tracking
     for name, model in models.items():
-        losses = train_model(model, train_loader, name)
-        all_losses[name] = losses
+        # 2. Start an MLflow run for each model
+        with mlflow.start_run(run_name=name):
+            
+            # 3. Log the hyperparameters
+            mlflow.log_params({
+                "epochs": EPOCHS,
+                "batch_size": BATCH_SIZE,
+                "learning_rate": LR,
+                "hidden_dim": HIDDEN,
+                "layers": LAYERS,
+                "dropout": DROPOUT,
+                "seed": SEED
+            })
 
-        result = evaluate_model(model, X_test, y_test, name)
-        all_results.append(result)
+            losses = train_model(model, train_loader, name)
+            all_losses[name] = losses
 
-        # Save the trained model
-        torch.save(model.state_dict(), f"{name.lower()}_model.pth")
-        print(f"  Model saved: {name.lower()}_model.pth")
+            result = evaluate_model(model, X_test, y_test, name)
+            all_results.append(result)
+
+            # 4. Log the evaluation metrics
+            mlflow.log_metric("accuracy", result["Accuracy (%)"])
+            mlflow.log_metric("f1_score", result["F1-Score"])
+            mlflow.log_metric("final_train_loss", losses[-1])
+
+            # 5. Save the trained model locally AND to MLflow
+            torch.save(model.state_dict(), f"{name.lower()}_model.pth")
+            mlflow.pytorch.log_model(model, artifact_path=f"{name.lower()}_model")
+            print(f"  Model saved locally and logged to MLflow!")
 
     # Plot training curves
     plot_losses(all_losses)
@@ -251,7 +276,7 @@ def run_training():
     print(f"\nBest model: {best}")
     print("=" * 60)
 
-    # Save results to CSV (use in your report!)
+    # Save results to CSV
     results_df.to_csv("model_results.csv", index=False)
     print("Results saved: model_results.csv")
 
