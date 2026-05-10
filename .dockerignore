@@ -1,0 +1,6 @@
+mlops_env/
+__pycache__/
+*.db
+mlruns/
+.git/
+.dvc/
