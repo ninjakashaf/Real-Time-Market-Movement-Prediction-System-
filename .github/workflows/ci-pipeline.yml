@@ -1,0 +1,25 @@
+name: Market Predictor CI/CD
+
+# This tells GitHub to run this pipeline every time someone pushes to 'master'
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # GitHub provides a free Linux server for this
+
+    steps:
+    # 1. Grab your repository's code
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # 2. Test the Docker build to ensure no dependencies are broken
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag market-predictor-app:test-build
+
+    # 3. Print a success message
+    - name: Verify Build Success
+      run: echo "Docker image built successfully! CI Pipeline passed."
